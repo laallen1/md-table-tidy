@@ -1,0 +1,18 @@
+[project]
+name = "mdtabletidy"
+version = "0.1.0"
+description = "Normalize messy markdown tables into consistently padded, aligned ones"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "laallen1" }]
+
+[project.scripts]
+mdtabletidy = "mdtabletidy:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
