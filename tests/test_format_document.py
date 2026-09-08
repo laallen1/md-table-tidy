@@ -111,6 +111,34 @@ def test_minimum_column_width_is_respected():
     assert out.splitlines()[1] == "| --- | --- |"
 
 
+def test_pipe_inside_inline_code_span_not_split():
+    src = (
+        "Syntax | Meaning\n"
+        "--- | ---\n"
+        "`a|b` | pipe example\n"
+    )
+    out = format_document(src)
+    lines = out.splitlines()
+    assert lines[0] == "| Syntax | Meaning      |"
+    assert lines[2] == "| `a|b`  | pipe example |"
+
+
+def test_pipe_inside_multi_backtick_code_span_not_split():
+    src = (
+        "a | b\n"
+        "--- | ---\n"
+        "`` a | `b `` | x\n"
+    )
+    out = format_document(src)
+    lines = out.splitlines()
+    assert lines[2] == "| `` a | `b `` | x |"
+
+
+def test_inline_code_pipe_alone_does_not_start_a_table():
+    src = "Use `a|b` for the pipe operator.\n---\nMore text.\n"
+    assert format_document(src) == src
+
+
 def test_right_alignment_separator_shape():
     src = (
         "a | b\n"

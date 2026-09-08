@@ -4,18 +4,54 @@ import argparse
 import re
 import sys
 
-ROW_SPLIT_RE = re.compile(r'(?<!\\)\|')
 SEP_CELL_RE = re.compile(r'^:?-+:?$')
 MIN_COL_WIDTH = 3
 
 
+def find_pipe_positions(line):
+    """Indices of '|' characters that act as cell separators.
+
+    Skips pipes that are backslash-escaped or that fall inside an inline
+    code span (a run of backticks matched by an equal-length closing run),
+    per CommonMark's inline code rules.
+    """
+    positions = []
+    i, n = 0, len(line)
+    in_code = False
+    code_delim_len = 0
+    while i < n:
+        ch = line[i]
+        if ch == '`':
+            j = i
+            while j < n and line[j] == '`':
+                j += 1
+            run_len = j - i
+            if not in_code:
+                in_code = True
+                code_delim_len = run_len
+            elif run_len == code_delim_len:
+                in_code = False
+            i = j
+            continue
+        if ch == '\\' and not in_code and i + 1 < n and line[i + 1] == '|':
+            i += 2
+            continue
+        if ch == '|' and not in_code:
+            positions.append(i)
+        i += 1
+    return positions
+
+
 def split_row(line):
     line = line.strip()
-    if line.startswith('|'):
-        line = line[1:]
-    if line.endswith('|') and not line.endswith('\\|'):
-        line = line[:-1]
-    return [cell.strip().replace('\\|', '|') for cell in ROW_SPLIT_RE.split(line)]
+    positions = find_pipe_positions(line)
+    bounds = [-1] + positions + [len(line)]
+    cells = [line[bounds[k] + 1:bounds[k + 1]] for k in range(len(bounds) - 1)]
+    if len(cells) > 1 and cells[0] == '' and line.startswith('|'):
+        cells = cells[1:]
+    if len(cells) > 1 and cells[-1] == '' and line.endswith('|'):
+        cells = cells[:-1]
+    return [cell.strip().replace('\\|', '|') for cell in cells]
 
 
 def is_separator_row(line):
@@ -27,7 +63,7 @@ def is_separator_row(line):
 
 
 def looks_like_table_row(line):
-    return '|' in line and line.strip() != ''
+    return bool(line.strip()) and bool(find_pipe_positions(line))
 
 
 def parse_alignment(cell):

@@ -54,15 +54,15 @@ file line by line looking for a header row immediately followed by a valid
 separator row (`---`, `:---`, `---:`, `:---:`), collects the table rows
 that follow, and re-renders that block with widths computed from the
 longest cell in each column. Fenced code blocks (` ``` ` / `~~~`) are
-tracked so table-looking lines inside them are never touched.
+tracked so table-looking lines inside them are never touched. Within a
+cell, a `|` inside inline code (`` `a|b` ``) is left alone instead of being
+read as a cell separator; use `\|` for a literal pipe outside of code.
 
 ## Known limitations
 
 - Column widths are based on `len()`, so wide Unicode characters (CJK,
   emoji) will make columns look uneven in a monospace font even though the
   character count lines up.
-- A `|` inside inline code (`` `a|b` ``) is treated as a cell separator,
-  same as a real one. Escape it as `\|` if you need a literal pipe.
 
 ## License
 
