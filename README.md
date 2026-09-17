@@ -60,9 +60,11 @@ read as a cell separator; use `\|` for a literal pipe outside of code.
 
 ## Known limitations
 
-- Column widths are based on `len()`, so wide Unicode characters (CJK,
-  emoji) will make columns look uneven in a monospace font even though the
-  character count lines up.
+- Column widths use `unicodedata.east_asian_width()` to count CJK
+  wide/fullwidth characters as two columns and combining marks as zero, so
+  padding lines up in a monospace font. Most emoji report as "narrow" or
+  "ambiguous" in Unicode's data and are counted as one column, so a table
+  with emoji-heavy cells can still look uneven.
 
 ## License
 

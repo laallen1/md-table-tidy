@@ -1,4 +1,4 @@
-from mdtabletidy import format_document
+from mdtabletidy import display_width, format_document
 
 
 def test_basic_alignment_and_padding():
@@ -149,3 +149,29 @@ def test_right_alignment_separator_shape():
     lines = out.splitlines()
     assert lines[1] == "| --: | --: |"
     assert lines[2] == "|   1 |  22 |"
+
+
+def test_display_width_counts_cjk_as_two_columns():
+    assert display_width("ab") == 2
+    assert display_width("你好") == 4
+    assert display_width("a你b") == 4
+
+
+def test_display_width_ignores_combining_marks():
+    # "e" followed by a combining acute accent (U+0301) is one visible column
+    assert display_width("é") == 1
+
+
+def test_cjk_column_padded_by_display_width_not_length():
+    src = (
+        "Word | Meaning\n"
+        "--- | ---\n"
+        "你好 | hello\n"
+        "hi | hi\n"
+    )
+    out = format_document(src)
+    lines = out.splitlines()
+    # "你好" is 2 code points but 4 display columns, same width as "Word"
+    assert lines[0] == "| Word | Meaning |"
+    assert lines[2] == "| 你好 | hello   |"
+    assert lines[3] == "| hi   | hi      |"

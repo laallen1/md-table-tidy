@@ -3,9 +3,25 @@
 import argparse
 import re
 import sys
+import unicodedata
 
 SEP_CELL_RE = re.compile(r'^:?-+:?$')
 MIN_COL_WIDTH = 3
+
+
+def display_width(text):
+    """Terminal/monospace column count, not code point count.
+
+    East Asian wide/fullwidth characters take two columns; combining marks
+    (accents stacked on a base character) take zero, since they render on
+    top of the previous column instead of advancing the cursor.
+    """
+    width = 0
+    for ch in text:
+        if unicodedata.combining(ch):
+            continue
+        width += 2 if unicodedata.east_asian_width(ch) in ('W', 'F') else 1
+    return width
 
 
 def find_pipe_positions(line):
@@ -80,13 +96,13 @@ def parse_alignment(cell):
 
 
 def render_cell(text, width, align):
+    pad = max(0, width - display_width(text))
     if align == 'right':
-        return text.rjust(width)
+        return ' ' * pad + text
     if align == 'center':
-        pad = width - len(text)
         left = pad // 2
         return ' ' * left + text + ' ' * (pad - left)
-    return text.ljust(width)
+    return text + ' ' * pad
 
 
 def render_separator_cell(width, align):
@@ -122,7 +138,7 @@ def format_table(block):
     widths = []
     for i in range(ncols):
         col_cells = [header[i]] + [r[i] for r in body]
-        widths.append(max(MIN_COL_WIDTH, max(len(c) for c in col_cells)))
+        widths.append(max(MIN_COL_WIDTH, max(display_width(c) for c in col_cells)))
 
     lines = [
         '| ' + ' | '.join(render_cell(header[i], widths[i], aligns[i]) for i in range(ncols)) + ' |',
