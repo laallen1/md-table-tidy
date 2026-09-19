@@ -1,6 +1,7 @@
 """Normalize markdown tables: consistent column widths, alignment markers, padding."""
 
 import argparse
+import glob
 import re
 import sys
 import unicodedata
@@ -181,28 +182,49 @@ def format_document(text):
     return result
 
 
+def expand_paths(patterns):
+    """Resolve glob patterns to file paths, in the order given.
+
+    A pattern that matches nothing is passed through as-is, so a plain
+    typo'd filename still fails later with a clear "No such file" error
+    instead of silently vanishing.
+    """
+    paths = []
+    for pattern in patterns:
+        matches = sorted(glob.glob(pattern, recursive=True))
+        paths.extend(matches if matches else [pattern])
+    return paths
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='mdtabletidy', description='Normalize markdown tables in a file.')
-    parser.add_argument('path', nargs='?', help='markdown file to format; reads stdin if omitted')
+    parser.add_argument('paths', nargs='*', metavar='path',
+                         help='markdown file(s) to format, glob patterns allowed; reads stdin if omitted')
     parser.add_argument('-w', '--write', action='store_true',
-                         help='rewrite the file in place instead of printing to stdout')
+                         help='rewrite the file(s) in place instead of printing to stdout')
     args = parser.parse_args(argv)
 
-    if args.path:
-        with open(args.path, 'r', encoding='utf-8') as f:
-            text = f.read()
-    else:
+    if not args.paths:
         if args.write:
-            parser.error('--write requires a file path, not stdin')
-        text = sys.stdin.read()
+            parser.error('--write requires at least one file path, not stdin')
+        sys.stdout.write(format_document(sys.stdin.read()))
+        return
 
-    formatted = format_document(text)
+    paths = expand_paths(args.paths)
+    if len(paths) > 1 and not args.write:
+        parser.error('formatting multiple files requires --write')
 
-    if args.write:
-        with open(args.path, 'w', encoding='utf-8') as f:
-            f.write(formatted)
-    else:
-        sys.stdout.write(formatted)
+    for path in paths:
+        with open(path, 'r', encoding='utf-8') as f:
+            text = f.read()
+
+        formatted = format_document(text)
+
+        if args.write:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(formatted)
+        else:
+            sys.stdout.write(formatted)
 
 
 if __name__ == '__main__':

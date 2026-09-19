@@ -39,10 +39,15 @@ the header, so a table doesn't fall apart when someone forgets a cell.
 ## Usage
 
 ```
-python -m mdtabletidy notes.md            # print the formatted file to stdout
-python -m mdtabletidy notes.md --write    # rewrite the file in place
-cat notes.md | python -m mdtabletidy      # read from stdin, print to stdout
+python -m mdtabletidy notes.md               # print the formatted file to stdout
+python -m mdtabletidy notes.md --write       # rewrite the file in place
+python -m mdtabletidy docs/**/*.md --write   # glob patterns, rewrite every match
+cat notes.md | python -m mdtabletidy         # read from stdin, print to stdout
 ```
+
+More than one file (whether from a glob or several paths on the command
+line) requires `--write`, since there's no sensible way to print multiple
+formatted files to stdout and later tell them apart.
 
 Once installed (`pip install -e .` from this directory), the same thing
 works as `mdtabletidy notes.md`.
