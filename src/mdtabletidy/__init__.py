@@ -202,17 +202,43 @@ def main(argv=None):
                          help='markdown file(s) to format, glob patterns allowed; reads stdin if omitted')
     parser.add_argument('-w', '--write', action='store_true',
                          help='rewrite the file(s) in place instead of printing to stdout')
+    parser.add_argument('-c', '--check', action='store_true',
+                         help="don't write anything; exit nonzero if any file has unformatted tables")
     args = parser.parse_args(argv)
+
+    if args.check and args.write:
+        parser.error('--check and --write cannot be used together')
 
     if not args.paths:
         if args.write:
             parser.error('--write requires at least one file path, not stdin')
-        sys.stdout.write(format_document(sys.stdin.read()))
+        text = sys.stdin.read()
+        formatted = format_document(text)
+        if args.check:
+            if text != formatted:
+                print('would reformat <stdin>', file=sys.stderr)
+                sys.exit(1)
+            return
+        sys.stdout.write(formatted)
         return
 
     paths = expand_paths(args.paths)
-    if len(paths) > 1 and not args.write:
+    if len(paths) > 1 and not args.write and not args.check:
         parser.error('formatting multiple files requires --write')
+
+    if args.check:
+        unformatted = []
+        for path in paths:
+            with open(path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            if format_document(text) != text:
+                unformatted.append(path)
+
+        for path in unformatted:
+            print(f'would reformat {path}', file=sys.stderr)
+        if unformatted:
+            sys.exit(1)
+        return
 
     for path in paths:
         with open(path, 'r', encoding='utf-8') as f:

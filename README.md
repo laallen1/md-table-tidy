@@ -42,12 +42,19 @@ the header, so a table doesn't fall apart when someone forgets a cell.
 python -m mdtabletidy notes.md               # print the formatted file to stdout
 python -m mdtabletidy notes.md --write       # rewrite the file in place
 python -m mdtabletidy docs/**/*.md --write   # glob patterns, rewrite every match
+python -m mdtabletidy docs/**/*.md --check   # exit nonzero if any file has unformatted tables
 cat notes.md | python -m mdtabletidy         # read from stdin, print to stdout
 ```
 
 More than one file (whether from a glob or several paths on the command
-line) requires `--write`, since there's no sensible way to print multiple
-formatted files to stdout and later tell them apart.
+line) requires `--write` or `--check`, since there's no sensible way to
+print multiple formatted files to stdout and later tell them apart.
+
+`--check` never writes anything. It compares each file against its
+formatted form, prints `would reformat <path>` to stderr for every file
+that differs, and exits with status 1 if any did. This is meant for CI: a
+clean exit means every table in the tree is already tidy. It can't be
+combined with `--write`.
 
 Once installed (`pip install -e .` from this directory), the same thing
 works as `mdtabletidy notes.md`.

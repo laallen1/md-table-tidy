@@ -65,3 +65,68 @@ def test_glob_pattern_with_no_matches_falls_through_to_missing_file_error(tmp_pa
 
     with pytest.raises(FileNotFoundError):
         main(["nothing-*.md", "--write"])
+
+
+def test_check_on_already_formatted_file_exits_zero_and_writes_nothing(tmp_path):
+    path = tmp_path / "one.md"
+    path.write_text(EXPECTED)
+
+    main([str(path), "--check"])
+
+    assert path.read_text() == EXPECTED
+
+
+def test_check_on_unformatted_file_exits_nonzero_and_leaves_file_untouched(tmp_path, capsys):
+    path = tmp_path / "one.md"
+    path.write_text(SRC)
+
+    with pytest.raises(SystemExit) as excinfo:
+        main([str(path), "--check"])
+
+    assert excinfo.value.code != 0
+    assert path.read_text() == SRC
+    assert str(path) in capsys.readouterr().err
+
+
+def test_check_reports_every_unformatted_file_before_exiting(tmp_path, capsys):
+    good = tmp_path / "good.md"
+    bad = tmp_path / "bad.md"
+    good.write_text(EXPECTED)
+    bad.write_text(SRC)
+
+    with pytest.raises(SystemExit):
+        main([str(good), str(bad), "--check"])
+
+    err = capsys.readouterr().err
+    assert str(bad) in err
+    assert str(good) not in err
+
+
+def test_check_and_write_together_is_an_error(tmp_path):
+    path = tmp_path / "one.md"
+    path.write_text(SRC)
+
+    with pytest.raises(SystemExit):
+        main([str(path), "--check", "--write"])
+
+
+def test_check_on_unformatted_stdin_exits_nonzero(monkeypatch, capsys):
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO(SRC))
+
+    with pytest.raises(SystemExit) as excinfo:
+        main(["--check"])
+
+    assert excinfo.value.code != 0
+    assert "<stdin>" in capsys.readouterr().err
+
+
+def test_check_on_formatted_stdin_exits_zero(monkeypatch, capsys):
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO(EXPECTED))
+
+    main(["--check"])
+
+    assert capsys.readouterr().out == ""
